@@ -1,0 +1,13 @@
+---
+description: Wisp React patterns
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Wisp React
+
+- Functional components; extract hooks for terminal, shortcuts, command history
+- Tab state in Zustand (useTabStore); no prop drilling for tabs
+- Compose shadcn primitives; add via CLI, don't hand-copy component source
+- DropdownMenuItem inside DropdownMenuGroup; Button icons use data-icon
+- PTY/xterm lifecycle in useTerminal hook; keep components presentational

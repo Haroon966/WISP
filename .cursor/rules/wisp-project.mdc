@@ -1,0 +1,12 @@
+---
+description: Wisp terminal app — stack and conventions
+alwaysApply: true
+---
+
+# Wisp
+
+- Tauri 2 + React + TypeScript + Vite; UI via shadcn/ui + Tailwind
+- Default shell: fish -l; fallback documented in README
+- Tab state in Zustand; PTY logic stays in Rust (src-tauri/)
+- Read design-system/wisp/MASTER.md before UI changes
+- Follow ponytail: minimal diff, reuse shadcn components, no new deps without reason

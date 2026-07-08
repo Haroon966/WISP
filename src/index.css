@@ -1,0 +1,141 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Brand content colors: #eaffb6 · #d6fb00 · #00545f */
+/* Surfaces: light #f1f1f1 · dark charcoal #2b2b2b */
+
+:root {
+  --brand-pale: 72 100% 86%;
+  --brand-neon: 68 100% 49%;
+  --brand-teal: 187 100% 19%;
+
+  --background: 0 0% 95%;
+  --foreground: 0 0% 17%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 17%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 17%;
+  --primary: 68 100% 49%;
+  --primary-foreground: 187 100% 19%;
+  --secondary: 72 60% 92%;
+  --secondary-foreground: 187 100% 19%;
+  --muted: 0 0% 90%;
+  --muted-foreground: 0 0% 40%;
+  --accent: 72 100% 86%;
+  --accent-foreground: 187 100% 19%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 88%;
+  --input: 0 0% 88%;
+  --ring: 68 100% 49%;
+  --radius: 0.5rem;
+  --sidebar: 0 0% 100%;
+  --sidebar-foreground: 0 0% 17%;
+  --sidebar-primary: 68 100% 49%;
+  --sidebar-primary-foreground: 187 100% 19%;
+  --sidebar-accent: 0 0% 95%;
+  --sidebar-accent-foreground: 0 0% 17%;
+  --sidebar-border: 0 0% 88%;
+  --sidebar-ring: 68 100% 49%;
+  --sidebar-muted: 0 0% 45%;
+  --status-running: 68 100% 49%;
+  --status-success: 187 100% 19%;
+  --status-neutral: 0 0% 55%;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.dark {
+  --background: 0 0% 17%;
+  --foreground: 0 0% 95%;
+  --card: 0 0% 20%;
+  --card-foreground: 0 0% 95%;
+  --popover: 0 0% 20%;
+  --popover-foreground: 0 0% 95%;
+  --primary: 68 100% 49%;
+  --primary-foreground: 187 100% 19%;
+  --secondary: 0 0% 22%;
+  --secondary-foreground: 72 100% 86%;
+  --muted: 0 0% 22%;
+  --muted-foreground: 0 0% 65%;
+  --accent: 187 100% 19%;
+  --accent-foreground: 72 100% 86%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 0 0% 25%;
+  --input: 0 0% 25%;
+  --ring: 68 100% 49%;
+  --sidebar: 0 0% 20%;
+  --sidebar-foreground: 0 0% 95%;
+  --sidebar-primary: 68 100% 49%;
+  --sidebar-primary-foreground: 187 100% 19%;
+  --sidebar-accent: 0 0% 24%;
+  --sidebar-accent-foreground: 0 0% 95%;
+  --sidebar-border: 0 0% 25%;
+  --sidebar-ring: 68 100% 49%;
+  --sidebar-muted: 0 0% 60%;
+  --status-running: 68 100% 49%;
+  --status-success: 72 100% 86%;
+  --status-neutral: 0 0% 45%;
+}
+
+@theme inline {
+  --color-brand-pale: hsl(var(--brand-pale));
+  --color-brand-neon: hsl(var(--brand-neon));
+  --color-brand-teal: hsl(var(--brand-teal));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+  --color-sidebar-muted: hsl(var(--sidebar-muted));
+  --color-status-running: hsl(var(--status-running));
+  --color-status-success: hsl(var(--status-success));
+  --color-status-neutral: hsl(var(--status-neutral));
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}

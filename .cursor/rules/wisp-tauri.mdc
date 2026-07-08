@@ -1,0 +1,13 @@
+---
+description: Wisp Rust/Tauri PTY conventions
+globs: "src-tauri/**/*.rs"
+alwaysApply: false
+---
+
+# Wisp Tauri
+
+- PTY via portable-pty; one blocking reader thread per session
+- Stream output via Tauri Channel<Vec<u8>>; input via write_terminal command
+- Fish resolver in shell.rs: which + platform paths, spawn fish -l
+- Env: TERM=xterm-256color, COLORTERM=truecolor
+- TerminalManager holds HashMap<Uuid, PtySession>; cleanup on tab close

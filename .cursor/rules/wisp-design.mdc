@@ -1,0 +1,14 @@
+---
+description: Wisp design tokens and UI conventions
+globs: "**/*.{tsx,css}"
+alwaysApply: false
+---
+
+# Wisp Design
+
+- Source of truth: design-system/wisp/MASTER.md
+- Use shadcn semantic tokens: bg-background, text-muted-foreground, border-border
+- Status colors via CSS variables: --status-running, --status-success, --status-neutral
+- Dark-first; no raw Tailwind colors (bg-blue-500) for UI chrome
+- Use flex gap-* not space-y-*; cn() for conditional classes
+- Lucide icons only; cursor-pointer on clickable elements; 150-300ms transitions
