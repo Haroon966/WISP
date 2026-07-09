@@ -22,10 +22,23 @@ impl TerminalManager {
         cwd: Option<String>,
         cols: u16,
         rows: u16,
+        fish_autosuggestions: Option<bool>,
+        fish_overlay_completions: Option<bool>,
+        shell: Option<String>,
+        env: Option<HashMap<String, String>>,
         channel: Channel<PtyEvent>,
     ) -> Result<String, String> {
         let id = Uuid::new_v4().to_string();
-        let session = PtySession::spawn(cwd, cols, rows, channel)?;
+        let session = PtySession::spawn(
+            cwd,
+            cols,
+            rows,
+            fish_autosuggestions,
+            fish_overlay_completions,
+            shell,
+            env,
+            channel,
+        )?;
         self.sessions.lock().insert(id.clone(), session);
         Ok(id)
     }

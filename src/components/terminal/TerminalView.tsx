@@ -1,33 +1,129 @@
 import { useEffect, useRef } from "react";
 import { useTerminal } from "@/hooks/useTerminal";
-import { PowerlinePrompt } from "@/components/terminal/PowerlinePrompt";
-import { BranchBadge } from "@/components/terminal/BranchBadge";
+import { PaneControls } from "@/components/terminal/PaneControls";
+import { CommandBlocks } from "@/components/terminal/CommandBlocks";
+import { FishCompletionOverlay } from "@/components/terminal/FishCompletionOverlay";
+import { useTabStore } from "@/stores/useTabStore";
+import { cn } from "@/lib/utils";
+
+export interface TerminalHandlers {
+  rerun: (command: string) => void;
+  insert: (command: string) => void;
+  findNext: (query: string) => boolean;
+  findPrevious: (query: string) => boolean;
+}
 
 interface TerminalViewProps {
   tabId: string;
-  onReady?: (
-    tabId: string,
-    handlers: {
-      rerun: (command: string) => void;
-      insert: (command: string) => void;
-    },
-  ) => void;
+  paneId: string;
+  focused: boolean;
+  active: boolean;
+  onReady?: (key: string, handlers: TerminalHandlers) => void;
 }
 
-export function TerminalView({ tabId, onReady }: TerminalViewProps) {
+export function TerminalView({
+  tabId,
+  paneId,
+  focused,
+  active,
+  onReady,
+}: TerminalViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { rerunCommand, insertCommand } = useTerminal(tabId, containerRef);
+  const setFocusedPane = useTabStore((s) => s.setFocusedPane);
+  const closePane = useTabStore((s) => s.closePane);
+  const togglePaneMinimized = useTabStore((s) => s.togglePaneMinimized);
+  const toggleBroadcast = useTabStore((s) => s.toggleBroadcast);
+  const tab = useTabStore((s) => s.tabs.find((t) => t.id === tabId));
+  const pane = tab?.panes[paneId];
+  const paneCount = tab ? Object.keys(tab.panes).length : 1;
+  const showControls = paneCount > 1;
+  const minimized = pane?.minimized ?? false;
+  const terminalActive = active && !minimized;
+
+  const {
+    rerunCommand,
+    insertCommand,
+    findNext,
+    findPrevious,
+    focusTerminal,
+    fishCompletions,
+    overlayEnabled,
+    acceptAtIndex,
+    writeToTerminal,
+  } = useTerminal(tabId, paneId, containerRef, terminalActive, focused);
 
   useEffect(() => {
-    onReady?.(tabId, { rerun: rerunCommand, insert: insertCommand });
-  }, [tabId, onReady, rerunCommand, insertCommand]);
+    onReady?.(`${tabId}:${paneId}`, {
+      rerun: rerunCommand,
+      insert: insertCommand,
+      findNext,
+      findPrevious,
+    });
+  }, [tabId, paneId, onReady, rerunCommand, insertCommand, findNext, findPrevious]);
+
+  const label =
+    pane?.sshHost ??
+    (pane?.branch && pane?.cwd
+      ? `${pane.cwd} (${pane.branch})`
+      : pane?.cwd ?? "~");
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col px-2 pt-2 pb-2">
-      <PowerlinePrompt tabId={tabId} className="mb-1 shrink-0" />
-      <div className="relative min-h-0 flex-1">
-        <div ref={containerRef} className="h-full w-full" />
-        <BranchBadge tabId={tabId} />
+    <div
+      className={cn(
+        "flex flex-col",
+        minimized ? "h-8 shrink-0 flex-none" : "min-h-0 flex-1",
+        focused && "ring-1 ring-primary/30",
+      )}
+      onPointerDown={() => {
+        setFocusedPane(tabId, paneId);
+        focusTerminal();
+      }}
+    >
+      {showControls ? (
+        <div className="flex h-8 shrink-0 items-center gap-2 border-b border-border bg-muted/30 px-2">
+          <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
+            {label}
+          </span>
+          <PaneControls
+            minimized={minimized}
+            broadcast={tab?.broadcast}
+            onToggleMinimize={() => togglePaneMinimized(tabId, paneId)}
+            onToggleBroadcast={
+              paneCount > 1 ? () => toggleBroadcast(tabId) : undefined
+            }
+            onClose={() => closePane(tabId, paneId)}
+          />
+        </div>
+      ) : null}
+
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 flex-col px-1.5 pt-2 pb-2 sm:px-2",
+          minimized && "hidden",
+        )}
+      >
+        {focused && active ? (
+          <CommandBlocks
+            tabId={tabId}
+            paneId={paneId}
+            onRerun={rerunCommand}
+            className="mb-1 shrink-0"
+          />
+        ) : null}
+        <div className="relative min-h-0 flex-1">
+          {overlayEnabled ? (
+            <FishCompletionOverlay
+              prefix={fishCompletions.prefix}
+              candidates={fishCompletions.candidates}
+              selectedIndex={fishCompletions.selectedIndex}
+              open={fishCompletions.open}
+              onSelect={(index) => {
+                void acceptAtIndex(index, writeToTerminal);
+              }}
+            />
+          ) : null}
+          <div ref={containerRef} className="h-full w-full" />
+        </div>
       </div>
     </div>
   );

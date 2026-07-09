@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use tauri::ipc::Channel;
 use tauri::State;
 
@@ -8,10 +10,23 @@ pub fn spawn_terminal(
     cwd: Option<String>,
     cols: u16,
     rows: u16,
+    fish_autosuggestions: Option<bool>,
+    fish_overlay_completions: Option<bool>,
+    shell: Option<String>,
+    env: Option<HashMap<String, String>>,
     on_event: Channel<PtyEvent>,
     manager: State<'_, TerminalManager>,
 ) -> Result<String, String> {
-    manager.spawn(cwd, cols, rows, on_event)
+    manager.spawn(
+        cwd,
+        cols,
+        rows,
+        fish_autosuggestions,
+        fish_overlay_completions,
+        shell,
+        env,
+        on_event,
+    )
 }
 
 #[tauri::command]

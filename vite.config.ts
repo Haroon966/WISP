@@ -15,6 +15,31 @@ export default defineConfig(async () => ({
     },
   },
 
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          monaco: ["monaco-editor", "@monaco-editor/react"],
+          xterm: [
+            "@xterm/xterm",
+            "@xterm/addon-fit",
+            "@xterm/addon-search",
+            "@xterm/addon-web-links",
+          ],
+          mermaid: ["mermaid"],
+          search: ["fuse.js", "cmdk"],
+        },
+      },
+    },
+  },
+
+  optimizeDeps: {
+    include: ["monaco-editor", "@monaco-editor/react"],
+  },
+  worker: {
+    format: "es",
+  },
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent Vite from obscuring rust errors
@@ -23,7 +48,7 @@ export default defineConfig(async () => ({
   server: {
     port: 1420,
     strictPort: true,
-    host: host || false,
+    host: host || "127.0.0.1",
     hmr: host
       ? {
           protocol: "ws",
