@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { openPath } from "@tauri-apps/plugin-opener";
 import mermaid from "mermaid";
 import { marked, Renderer, type Tokens } from "marked";
-import { useSettingsStore } from "@/stores/useSettingsStore";
+import { isDarkTheme, onThemeChange } from "@/lib/theme";
 import type { EditorFile } from "@/types/editor";
 import {
   markdownFileDir,
@@ -64,9 +64,11 @@ function parseMarkdown(content: string, fileDir: string): string {
 
 export function MarkdownPreview({ file }: MarkdownPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const themeSetting = useSettingsStore((s) => s.settings.theme);
+  const [themeEpoch, setThemeEpoch] = useState(0);
   const fileDir = useMemo(() => markdownFileDir(file.path), [file.path]);
   const [debouncedContent, setDebouncedContent] = useState(file.content);
+
+  useEffect(() => onThemeChange(() => setThemeEpoch((n) => n + 1)), []);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedContent(file.content), 200);
@@ -115,7 +117,7 @@ export function MarkdownPreview({ file }: MarkdownPreviewProps) {
 
     mermaid.initialize({
       startOnLoad: false,
-      theme: themeSetting === "light" ? "default" : "dark",
+      theme: isDarkTheme() ? "dark" : "default",
       securityLevel: "strict",
     });
 
@@ -145,13 +147,15 @@ export function MarkdownPreview({ file }: MarkdownPreviewProps) {
     return () => {
       cancelled = true;
     };
-  }, [debouncedContent, file.id, file.version, html, themeSetting]);
+  }, [debouncedContent, file.id, file.version, html, themeEpoch]);
 
   return (
-    <div
-      ref={containerRef}
-      className="markdown-preview min-h-0 min-w-0 w-full flex-1 overflow-auto p-4 sm:p-6"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className="min-h-0 min-w-0 w-full flex-1 overflow-x-auto overflow-y-auto">
+      <div
+        ref={containerRef}
+        className="markdown-preview p-4 sm:p-6"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
   );
 }

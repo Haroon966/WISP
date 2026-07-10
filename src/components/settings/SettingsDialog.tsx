@@ -508,17 +508,6 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       onCheckedChange={(v) => set("fishAutosuggestions", v)}
                     />
                   </SettingRow>
-                  <SettingRow
-                    id="settings-fish-overlay"
-                    label="Completion menu overlay"
-                    description="Wisp dropdown for fish tab completions under the prompt."
-                  >
-                    <Switch
-                      id="settings-fish-overlay"
-                      checked={settings.fishOverlayCompletions}
-                      onCheckedChange={(v) => set("fishOverlayCompletions", v)}
-                    />
-                  </SettingRow>
                 </SettingSection>
               </TabsContent>
 

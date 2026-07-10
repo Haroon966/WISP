@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef } from "react";
-import { useShallow } from "zustand/react/shallow";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { tauriReady, waitForTauri } from "@/lib/tauriWindow";
 import { Terminal } from "@xterm/xterm";
@@ -10,7 +9,6 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import "@xterm/xterm/css/xterm.css";
 import { useTabStore } from "@/stores/useTabStore";
 import { useCommandHistory } from "@/hooks/useCommandHistory";
-import { useFishCompletions } from "@/hooks/useFishCompletions";
 import {
   getTerminalFontFamily,
   useSettingsStore,
@@ -30,29 +28,11 @@ type PtyEvent =
   | { type: "output"; data: number[] }
   | { type: "exit"; data: { code: number | null } };
 
-const WISP_MARKER_TAIL = 32;
-const WISP_START_MARKER = "\x1b]777;START\x07";
-const WISP_EXIT_MARKER = /\x1b\]777;EXIT;(\d+)\x07/g;
-
 function lastRunningRun(runs: { status: string; command: string }[]) {
   for (let i = runs.length - 1; i >= 0; i--) {
     if (runs[i].status === "running") return runs[i];
   }
   return undefined;
-}
-
-function scanShellMarkers(
-  chunk: number[],
-  tail: string,
-  onRunning: () => void,
-  onExit: (code: number) => void,
-): string {
-  const text = tail + new TextDecoder().decode(new Uint8Array(chunk));
-  if (text.includes(WISP_START_MARKER)) onRunning();
-  for (const match of text.matchAll(WISP_EXIT_MARKER)) {
-    onExit(Number(match[1]));
-  }
-  return text.slice(-WISP_MARKER_TAIL);
 }
 
 function fitAndResize(
@@ -68,46 +48,6 @@ function fitAndResize(
       rows: term.rows,
     });
   }
-}
-
-function chunkHasEsc(chunk: number[]): boolean {
-  for (let i = 0; i < chunk.length; i++) {
-    if (chunk[i] === 0x1b) return true;
-  }
-  return false;
-}
-
-function createWriteBatcher(term: Terminal) {
-  const queue: Uint8Array[] = [];
-  let rafId: number | null = null;
-
-  const flush = () => {
-    rafId = null;
-    if (queue.length === 0) return;
-    let total = 0;
-    for (const part of queue) total += part.length;
-    const merged = new Uint8Array(total);
-    let offset = 0;
-    for (const part of queue) {
-      merged.set(part, offset);
-      offset += part.length;
-    }
-    queue.length = 0;
-    term.write(merged);
-  };
-
-  return {
-    write(data: Uint8Array) {
-      if (data.length === 0) return;
-      queue.push(data);
-      if (rafId === null) rafId = requestAnimationFrame(flush);
-    },
-    flush,
-    dispose() {
-      if (rafId !== null) cancelAnimationFrame(rafId);
-      flush();
-    },
-  };
 }
 
 export function useTerminal(
@@ -126,46 +66,21 @@ export function useTerminal(
   const setPaneStatus = useTabStore((s) => s.setPaneStatus);
   const setPaneSessionId = useTabStore((s) => s.setPaneSessionId);
   const setPaneCwd = useTabStore((s) => s.setPaneCwd);
-  const setPaneBranch = useTabStore((s) => s.setPaneBranch);
   const startCommandRun = useTabStore((s) => s.startCommandRun);
   const finishCommandRun = useTabStore((s) => s.finishCommandRun);
-  const pane = useTabStore(
-    useShallow((s) => s.tabs.find((t) => t.id === tabId)?.panes[paneId]),
-  );
   const { recordCommand } = useCommandHistory(tabId, paneId);
   const terminalFontSize = useSettingsStore((s) => s.settings.terminalFontSize);
   const terminalFontFamily = useSettingsStore((s) => s.settings.terminalFontFamily);
   const terminalCursorBlink = useSettingsStore((s) => s.settings.terminalCursorBlink);
-  const fishOverlayCompletions = useSettingsStore((s) => s.settings.fishOverlayCompletions);
   const fishAutosuggestions = useSettingsStore((s) => s.settings.fishAutosuggestions);
-  const isSshSession = Boolean(pane?.sshHost);
-
-  const fishCompletions = useFishCompletions();
-  const {
-    applyMeta,
-    clear,
-    selectNext,
-    selectPrev,
-    acceptSelected,
-    acceptAtIndex,
-    stateRef: completionRef,
-  } = fishCompletions;
-
-  const overlayEnabled =
-    fishOverlayCompletions && !isSshSession;
-
-  const overlayEnabledRef = useRef(overlayEnabled);
   const settingsRef = useRef({
     fishAutosuggestions,
-    fishOverlayCompletions,
     terminalFontSize,
     terminalFontFamily,
     terminalCursorBlink,
   });
-  overlayEnabledRef.current = overlayEnabled;
   settingsRef.current = {
     fishAutosuggestions,
-    fishOverlayCompletions,
     terminalFontSize,
     terminalFontFamily,
     terminalCursorBlink,
@@ -290,10 +205,18 @@ export function useTerminal(
     searchRef.current = searchAddon;
 
     let disposed = false;
-    let markerTail = "";
     let oscCarry = "";
     let resizeTimer: ReturnType<typeof setTimeout> | undefined;
-    const writeBatcher = createWriteBatcher(term);
+
+    const finishRun = (code: number) => {
+      const run = lastRunningRun(
+        useTabStore.getState().tabs.find((t) => t.id === tabId)?.panes[paneId]
+          ?.commandRuns ?? [],
+      );
+      finishCommandRun(tabId, paneId, code);
+      if (run) maybeNotifyComplete(run.command, code);
+      setPaneStatus(tabId, paneId, code === 0 ? "success" : "failed");
+    };
 
     const channel = new Channel<PtyEvent>();
     channel.onmessage = (msg) => {
@@ -301,58 +224,29 @@ export function useTerminal(
       if (msg.type === "output") {
         if (!activeRef.current) return;
 
-        let display: Uint8Array;
-        let meta: ReturnType<typeof processPtyChunk>["meta"];
-        if (!oscCarry && !chunkHasEsc(msg.data)) {
-          display = new Uint8Array(msg.data);
-          meta = {};
-        } else {
-          const parsed = processPtyChunk(msg.data, oscCarry);
-          oscCarry = parsed.carry;
-          display = parsed.display;
-          meta = parsed.meta;
-        }
+        const parsed = processPtyChunk(msg.data, oscCarry);
+        oscCarry = parsed.carry;
+        const { display, meta } = parsed;
 
-        if (display.length > 0) writeBatcher.write(display);
+        if (display.length > 0) term.write(display);
 
         if (meta.cwd) {
           setPaneCwd(tabId, paneId, meta.cwd);
-          if (meta.branch === undefined) {
-            void syncPaneGitBranch(tabId, paneId, meta.cwd);
-          }
+          void syncPaneGitBranch(tabId, paneId, meta.cwd);
         }
-        if (meta.branch !== undefined) setPaneBranch(tabId, paneId, meta.branch);
         if (meta.command) {
           recordCommand(meta.command);
           startCommandRun(tabId, paneId, meta.command);
         }
-        if (overlayEnabledRef.current && meta.completions !== undefined) {
-          applyMeta(meta);
+        if (meta.started) {
+          setPaneStatus(tabId, paneId, "running");
         }
-
-        markerTail = scanShellMarkers(
-          msg.data,
-          markerTail,
-          () => setPaneStatus(tabId, paneId, "running"),
-          (code) => {
-            const run = lastRunningRun(
-              useTabStore.getState().tabs.find((t) => t.id === tabId)?.panes[paneId]
-                ?.commandRuns ?? [],
-            );
-            finishCommandRun(tabId, paneId, code);
-            if (run) maybeNotifyComplete(run.command, code);
-            setPaneStatus(tabId, paneId, code === 0 ? "success" : "failed");
-          },
-        );
+        if (meta.exitCode !== undefined) {
+          finishRun(meta.exitCode);
+        }
       } else if (msg.type === "exit") {
         const code = msg.data.code ?? 1;
-        const run = lastRunningRun(
-          useTabStore.getState().tabs.find((t) => t.id === tabId)?.panes[paneId]
-            ?.commandRuns ?? [],
-        );
-        finishCommandRun(tabId, paneId, code);
-        if (run) maybeNotifyComplete(run.command, code);
-        setPaneStatus(tabId, paneId, code === 0 ? "success" : "failed");
+        finishRun(code);
       }
     };
 
@@ -367,7 +261,6 @@ export function useTerminal(
           cols: term.cols,
           rows: term.rows,
           fishAutosuggestions: settingsRef.current.fishAutosuggestions,
-          fishOverlayCompletions: settingsRef.current.fishOverlayCompletions,
           shell: pane?.shell && pane.shell !== "auto" ? pane.shell : null,
           env: pane?.env ?? null,
           onEvent: channel,
@@ -403,42 +296,12 @@ export function useTerminal(
     const disposeClipboard = installTerminalClipboard(term, mountContainer);
 
     term.attachCustomKeyEventHandler((event) => {
-      if (!handleTerminalClipboardKey(event, term)) return false;
-
-      if (!overlayEnabledRef.current || !completionRef.current.open) return true;
-
-      if (event.key === "ArrowDown") {
-        event.preventDefault();
-        selectNext();
-        return false;
-      }
-      if (event.key === "ArrowUp") {
-        event.preventDefault();
-        selectPrev();
-        return false;
-      }
-      if (event.key === "Escape") {
-        event.preventDefault();
-        clear();
-        return false;
-      }
-      if (event.key === "Enter" && completionRef.current.open) {
-        event.preventDefault();
-        void acceptSelected(writeToTerminal);
-        return false;
-      }
-      if (event.key === "Tab" && !event.shiftKey && completionRef.current.open) {
-        event.preventDefault();
-        void acceptSelected(writeToTerminal);
-        return false;
-      }
-      return true;
+      return handleTerminalClipboardKey(event, term);
     });
 
     const onData = term.onData((data) => {
       void writeToTerminal(data);
       if (data.includes("\r") || data.includes("\n")) {
-        clear();
         setPaneStatus(tabId, paneId, "running");
       }
     });
@@ -470,7 +333,7 @@ export function useTerminal(
     cleanup = () => {
       disposed = true;
       if (resizeTimer) clearTimeout(resizeTimer);
-      writeBatcher.dispose();
+      oscCarry = "";
       disposeClipboard();
       themeObserver.disconnect();
       onData.dispose();
@@ -483,7 +346,6 @@ export function useTerminal(
       fitRef.current = null;
       searchRef.current = null;
       sessionRef.current = null;
-      clear();
     };
     };
 
@@ -503,18 +365,11 @@ export function useTerminal(
     setPaneStatus,
     setPaneSessionId,
     setPaneCwd,
-    setPaneBranch,
     recordCommand,
     startCommandRun,
     finishCommandRun,
     maybeNotifyComplete,
     writeToTerminal,
-    applyMeta,
-    clear,
-    selectNext,
-    selectPrev,
-    acceptSelected,
-    completionRef,
   ]);
 
   useEffect(() => {
@@ -561,8 +416,5 @@ export function useTerminal(
     findNext,
     findPrevious,
     focusTerminal,
-    fishCompletions,
-    overlayEnabled,
-    acceptAtIndex,
   };
 }

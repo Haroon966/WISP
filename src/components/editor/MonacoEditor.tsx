@@ -1,7 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
-import { setupMonacoWorkers, defineWispMonacoThemes } from "@/lib/monacoSetup";
+import {
+  applyWispMonacoThemes,
+  defineWispMonacoThemes,
+  setupMonacoWorkers,
+} from "@/lib/monacoSetup";
+import { activeMonacoTheme, onThemeChange } from "@/lib/theme";
 import {
   getTerminalFontFamily,
   useSettingsStore,
@@ -18,17 +23,22 @@ export function MonacoEditor({ file, onChange, onBlur }: MonacoEditorProps) {
   const terminalFontFamily = useSettingsStore(
     (s) => s.settings.terminalFontFamily,
   );
-  const themeSetting = useSettingsStore((s) => s.settings.theme);
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof Monaco | null>(null);
   const onChangeRef = useRef(onChange);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
+  const [monacoTheme, setMonacoTheme] = useState(activeMonacoTheme);
 
   onChangeRef.current = onChange;
 
-  const monacoTheme = themeSetting === "light" ? "wisp-light" : "wisp-dark";
+  const syncMonacoTheme = (monaco: typeof Monaco) => {
+    applyWispMonacoThemes(monaco);
+    const theme = activeMonacoTheme();
+    monaco.editor.setTheme(theme);
+    setMonacoTheme(theme);
+  };
 
   const flushChange = () => {
     const ed = editorRef.current;
@@ -46,9 +56,9 @@ export function MonacoEditor({ file, onChange, onBlur }: MonacoEditorProps) {
 
   const onMount: OnMount = (ed, monaco) => {
     setupMonacoWorkers();
-    defineWispMonacoThemes();
     editorRef.current = ed;
     monacoRef.current = monaco;
+    syncMonacoTheme(monaco);
     const uri = monaco.Uri.parse(`wisp://${file.id}`);
     let model = monaco.editor.getModel(uri);
     if (!model) {
@@ -75,7 +85,12 @@ export function MonacoEditor({ file, onChange, onBlur }: MonacoEditorProps) {
 
   useEffect(() => {
     defineWispMonacoThemes();
-  }, [themeSetting]);
+    return onThemeChange(() => {
+      const monaco = monacoRef.current;
+      if (monaco) syncMonacoTheme(monaco);
+      else setMonacoTheme(activeMonacoTheme());
+    });
+  }, []);
 
   useEffect(
     () => () => {
@@ -87,22 +102,24 @@ export function MonacoEditor({ file, onChange, onBlur }: MonacoEditorProps) {
   if (file.encoding !== "utf8") return null;
 
   return (
-    <Editor
-      height="100%"
-      language={file.language}
-      theme={monacoTheme}
-      defaultValue={file.content}
-      onChange={(v) => scheduleChange(v ?? "")}
-      onMount={onMount}
-      options={{
-        automaticLayout: true,
-        fontFamily: getTerminalFontFamily(terminalFontFamily),
-        fontSize: 13,
-        minimap: { enabled: false },
-        scrollBeyondLastLine: false,
-        wordWrap: "on",
-        padding: { top: 8 },
-      }}
-    />
+    <div className="min-h-0 min-w-0 w-full flex-1">
+      <Editor
+        height="100%"
+        language={file.language}
+        theme={monacoTheme}
+        defaultValue={file.content}
+        onChange={(v) => scheduleChange(v ?? "")}
+        onMount={onMount}
+        options={{
+          automaticLayout: true,
+          fontFamily: getTerminalFontFamily(terminalFontFamily),
+          fontSize: 13,
+          minimap: { enabled: false },
+          scrollBeyondLastLine: false,
+          wordWrap: "off",
+          padding: { top: 8 },
+        }}
+      />
+    </div>
   );
 }

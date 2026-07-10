@@ -251,7 +251,9 @@
   .markdown-preview {
     @apply text-sm leading-relaxed text-foreground;
     box-sizing: border-box;
-    max-width: min(48rem, 100%);
+    width: max-content;
+    min-width: min(48rem, 100%);
+    max-width: none;
     margin-inline: auto;
   }
 
@@ -338,7 +340,7 @@
   }
 
   .markdown-preview table {
-    @apply w-full border-collapse text-sm;
+    @apply w-max min-w-full border-collapse text-sm;
   }
 
   .markdown-preview th,

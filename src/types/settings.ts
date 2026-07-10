@@ -34,7 +34,6 @@ export interface Settings {
   terminalCursorBlink: boolean;
   terminalFontFamily: TerminalFontFamily;
   fishAutosuggestions: boolean;
-  fishOverlayCompletions: boolean;
   defaultCwd: string;
   maxClosedTabs: number;
   confirmCloseTab: boolean;
@@ -61,7 +60,6 @@ export const DEFAULT_SETTINGS: Settings = {
   terminalCursorBlink: true,
   terminalFontFamily: "jetbrains",
   fishAutosuggestions: true,
-  fishOverlayCompletions: true,
   defaultCwd: "~",
   maxClosedTabs: 20,
   confirmCloseTab: false,

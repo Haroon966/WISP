@@ -1,8 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useTerminal } from "@/hooks/useTerminal";
 import { PaneControls } from "@/components/terminal/PaneControls";
-import { CommandBlocks } from "@/components/terminal/CommandBlocks";
-import { FishCompletionOverlay } from "@/components/terminal/FishCompletionOverlay";
 import { useTabStore } from "@/stores/useTabStore";
 import { cn } from "@/lib/utils";
 
@@ -46,10 +44,6 @@ export function TerminalView({
     findNext,
     findPrevious,
     focusTerminal,
-    fishCompletions,
-    overlayEnabled,
-    acceptAtIndex,
-    writeToTerminal,
   } = useTerminal(tabId, paneId, containerRef, terminalActive, focused);
 
   useEffect(() => {
@@ -102,28 +96,7 @@ export function TerminalView({
           minimized && "hidden",
         )}
       >
-        {focused && active ? (
-          <CommandBlocks
-            tabId={tabId}
-            paneId={paneId}
-            onRerun={rerunCommand}
-            className="mb-1 shrink-0"
-          />
-        ) : null}
-        <div className="relative min-h-0 flex-1">
-          {overlayEnabled ? (
-            <FishCompletionOverlay
-              prefix={fishCompletions.prefix}
-              candidates={fishCompletions.candidates}
-              selectedIndex={fishCompletions.selectedIndex}
-              open={fishCompletions.open}
-              onSelect={(index) => {
-                void acceptAtIndex(index, writeToTerminal);
-              }}
-            />
-          ) : null}
-          <div ref={containerRef} className="h-full w-full" />
-        </div>
+        <div ref={containerRef} className="min-h-0 flex-1" />
       </div>
     </div>
   );

@@ -3,7 +3,6 @@ import { ExternalLinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { mediaAssetUrl } from "@/lib/mediaCache";
 import type { EditorFile } from "@/types/editor";
-import { cn } from "@/lib/utils";
 
 interface MediaPreviewProps {
   file: EditorFile;
@@ -16,8 +15,8 @@ export function MediaPreview({ file }: MediaPreviewProps) {
   const src = ready ? mediaAssetUrl(file.absolutePath, file.version) : null;
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/60 px-3 py-1.5">
+    <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden bg-background">
+      <div className="flex h-8 shrink-0 items-center justify-between gap-2 border-b border-border bg-muted/30 px-3">
         <span className="truncate text-xs text-muted-foreground">
           {name}
           {file.mimeType ? (
@@ -34,12 +33,7 @@ export function MediaPreview({ file }: MediaPreviewProps) {
           Open externally
         </Button>
       </div>
-      <div
-        className={cn(
-          "relative grid min-h-0 min-w-0 flex-1 place-items-center overflow-hidden p-4",
-          isVideo ? "bg-black/90" : "bg-muted/20",
-        )}
-      >
+      <div className="relative grid min-h-0 min-w-0 flex-1 place-items-center overflow-auto bg-muted/20 p-4">
         {file.mediaStatus === "error" ? (
           <p className="text-sm text-muted-foreground">
             Could not load preview. Try opening externally.
@@ -51,7 +45,7 @@ export function MediaPreview({ file }: MediaPreviewProps) {
             controls
             playsInline
             preload="metadata"
-            className="max-h-full max-w-full rounded-md shadow-md"
+            className="h-auto w-auto max-w-none shrink-0 rounded-md shadow-md"
             aria-label={`Video preview: ${name}`}
           />
         ) : null}
@@ -60,7 +54,7 @@ export function MediaPreview({ file }: MediaPreviewProps) {
             src={src}
             alt={name}
             decoding="async"
-            className="max-h-full max-w-full object-contain"
+            className="h-auto w-auto max-w-none shrink-0"
             draggable={false}
           />
         ) : null}

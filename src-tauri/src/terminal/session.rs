@@ -28,7 +28,6 @@ impl PtySession {
         cols: u16,
         rows: u16,
         fish_autosuggestions: Option<bool>,
-        fish_overlay_completions: Option<bool>,
         shell: Option<String>,
         env: Option<HashMap<String, String>>,
         channel: Channel<PtyEvent>,
@@ -44,7 +43,7 @@ impl PtySession {
             .map_err(|e| e.to_string())?;
 
         let cwd_path = cwd.as_deref().map(std::path::Path::new);
-        let opts = ShellOptions::from_spawn(fish_autosuggestions, fish_overlay_completions);
+        let opts = ShellOptions::from_spawn(fish_autosuggestions);
         let extra_env = env.unwrap_or_default();
         let cmd = shell::build_shell_command(
             cwd_path,

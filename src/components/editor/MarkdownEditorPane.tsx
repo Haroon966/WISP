@@ -23,7 +23,7 @@ export function MarkdownEditorPane({ tabId, file }: MarkdownEditorPaneProps) {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/60 px-3 py-1.5">
+      <div className="flex h-8 shrink-0 items-center justify-between gap-2 border-b border-border bg-muted/30 px-3">
         <span className="truncate text-xs text-muted-foreground">
           {name}
           {file.dirty ? <span className="ml-1 text-foreground">•</span> : null}

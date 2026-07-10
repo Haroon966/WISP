@@ -91,7 +91,7 @@ function TabContent({
             className="md:hidden"
           />
           <div
-            className="flex min-h-0 min-w-0 flex-col overflow-hidden"
+            className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-background"
             style={{ flex: sizes[1] }}
           >
             <EditorTabBar
@@ -174,8 +174,8 @@ export function MainPanel({ onRegisterTerminalHandler }: MainPanelProps) {
   }
 
   return (
-    <main className="flex min-w-0 flex-1 flex-col bg-background">
-      <div className="relative min-h-0 flex-1">
+    <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         {activeTabId ? (
           <TabContent
             key={activeTabId}
