@@ -27,6 +27,7 @@
     "fuse.js": "^7.4.2",
     "lucide-react": "^1.23.0",
     "marked": "^18.0.5",
+    "material-icon-theme": "^5.36.1",
     "mermaid": "^11.16.0",
     "monaco-editor": "^0.55.1",
     "radix-ui": "^1.6.2",

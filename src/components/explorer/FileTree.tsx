@@ -1,19 +1,27 @@
 import { memo, useCallback, useEffect, useState } from "react";
-import {
-  ChevronRightIcon,
-  FileIcon,
-  FileVideoIcon,
-  FolderIcon,
-  FolderOpenIcon,
-  ImageIcon,
-} from "lucide-react";
+import { ChevronRightIcon } from "lucide-react";
 import { listDirectory, type DirEntry } from "@/lib/fs";
+import {
+  materialFileIconUrl,
+  materialFolderIconUrl,
+} from "@/lib/materialIcons";
 import { tauriReady, waitForTauri } from "@/lib/tauriWindow";
 import { mediaKindFromPath } from "@/lib/media";
 import { prefetchMediaPreview } from "@/lib/mediaCache";
 import { useEditorStore } from "@/stores/useEditorStore";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { cn } from "@/lib/utils";
+
+function TreeIcon({ src }: { src: string }) {
+  return (
+    <img
+      src={src}
+      alt=""
+      draggable={false}
+      className="size-4 shrink-0"
+    />
+  );
+}
 
 interface FileTreeItemProps {
   tabId: string;
@@ -97,24 +105,13 @@ const FileTreeItem = memo(function FileTreeItem({
         ) : (
           <span className="size-3.5 shrink-0" />
         )}
-        {isDir ? (
-          expanded ? (
-            <FolderOpenIcon className="size-3.5 shrink-0 text-muted-foreground" />
-          ) : (
-            <FolderIcon className="size-3.5 shrink-0 text-muted-foreground" />
-          )
-        ) : (
-          (() => {
-            const kind = mediaKindFromPath(entry.path);
-            if (kind === "image") {
-              return <ImageIcon className="size-3.5 shrink-0 text-muted-foreground" />;
-            }
-            if (kind === "video") {
-              return <FileVideoIcon className="size-3.5 shrink-0 text-muted-foreground" />;
-            }
-            return <FileIcon className="size-3.5 shrink-0 text-muted-foreground" />;
-          })()
-        )}
+        <TreeIcon
+          src={
+            isDir
+              ? materialFolderIconUrl(entry.name, expanded)
+              : materialFileIconUrl(entry.name)
+          }
+        />
         <span className="truncate">{entry.name}</span>
       </button>
       {isDir && expanded
